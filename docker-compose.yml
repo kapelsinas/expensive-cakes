@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nothink-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nothink_checkout
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d nothink_checkout']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: 
+      - "postgres"
+      - "-c"
+      - "listen_addresses=*"
+
+volumes:
+  postgres_data:
+    driver: local
+
+

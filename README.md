@@ -23,12 +23,128 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+**Multi-Provider Checkout Platform** - A minimal-yet-extensible cart → order → payment system built with NestJS that demonstrates clean architecture, strategic thinking around payment provider abstraction, and production-ready patterns.
 
-## Project setup
+### Project Scope
+
+This project implements a complete e-commerce checkout flow with emphasis on:
+- **Payment Provider Abstraction**: Clean integration of multiple payment providers (Stripe, PayPal, Manual) using Strategy and Factory patterns
+- **Domain-Driven Design**: Well-defined entities with proper relationships and lifecycle management
+- **Transactional Consistency**: Safe cart-to-order checkout flow with rollback support
+- **Extensibility**: Easy to add new providers and features without breaking existing code
+- **Production Mindset**: Audit trails, error handling, and comprehensive logging
+
+### Tech Stack
+
+- **Framework**: NestJS with TypeScript
+- **Database**: PostgreSQL with TypeORM
+- **Validation**: Zod schemas
+- **API Documentation**: Swagger/OpenAPI
+- **Containerization**: Docker & docker-compose
+
+For detailed implementation plan, see [cart.plan.md](./cart.plan.md)
+
+## Quick Start
+
+Get up and running in 3 simple steps:
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Copy environment file
+cp env.example .env
+
+# 3. Start database with Docker
+npm run docker:up
+
+# 4. Run migrations (if any)
+npm run migration:run
+
+# 5. Start the application
+npm run start:dev
+```
+
+The application will be available at `http://localhost:3000`
+
+## Project Setup
+
+### Prerequisites
+
+- **Node.js** (v18 or higher)
+- **Docker & Docker Compose** (recommended) or PostgreSQL installed locally
+
+### 1. Clone and Install Dependencies
 
 ```bash
 $ npm install
+```
+
+### 2. Environment Configuration
+
+Create a `.env` file in the root directory (use `env.example` as template):
+
+```bash
+# Copy the example file
+$ cp env.example .env
+```
+
+The default configuration works with the Docker setup below. Update if using a custom PostgreSQL instance.
+
+### 3. Start the Database
+
+#### Option A: Using Docker (Recommended)
+
+Start PostgreSQL with Docker Compose:
+
+```bash
+# Start the database in detached mode
+$ docker-compose up -d
+
+# Check database is running
+$ docker-compose ps
+```
+
+To stop the database:
+
+```bash
+$ docker-compose down
+
+# To stop and remove data volumes
+$ docker-compose down -v
+```
+
+#### Option B: Using Local PostgreSQL
+
+If you have PostgreSQL installed locally, create a database:
+
+```sql
+CREATE DATABASE nothink_checkout;
+```
+
+Update your `.env` file with your local PostgreSQL credentials.
+
+### 4. Run Migrations
+
+Once the database is running, apply migrations:
+
+```bash
+# Run pending migrations
+$ npm run migration:run
+```
+
+### 5. Helpful Commands
+
+```bash
+# Docker management
+$ npm run docker:up          # Start database
+$ npm run docker:down        # Stop database
+$ npm run docker:logs        # View database logs
+
+# Database migrations
+$ npm run migration:generate # Generate new migration
+$ npm run migration:run      # Run migrations
+$ npm run migration:revert   # Revert last migration
 ```
 
 ## Compile and run the project
