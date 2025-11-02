@@ -64,11 +64,11 @@ export class PaymentService {
 
     // Save payment record
     const payment = this.paymentRepository.create({
-      order,
+      order: order,
       provider: provider.providerName,
       status: paymentIntent.status,
       amount: paymentIntent.amount,
-      currency: paymentIntent.currency,
+      currency: paymentIntent.currency as Payment['currency'],
       externalId: paymentIntent.externalId,
       metadata: paymentIntent.metadata ?? null,
       rawResponse: paymentIntent as unknown as Record<string, unknown>,
@@ -76,7 +76,6 @@ export class PaymentService {
 
     await this.paymentRepository.save(payment);
 
-    // Update order status based on payment
     if (paymentIntent.status === PaymentStatus.COMPLETED) {
       await this.orderService.updateOrderStatus(order.id, OrderStatus.PAID);
     } else if (paymentIntent.status === PaymentStatus.FAILED) {

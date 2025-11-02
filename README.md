@@ -23,37 +23,100 @@
 
 ## Description
 
-**Multi-Provider Checkout Platform** - A minimal-yet-extensible cart → order → payment system built with NestJS that demonstrates clean architecture, strategic thinking around payment provider abstraction, and production-ready patterns.
+**Multi-Provider Checkout Platform** - A production-ready cart, order, and payment system showcasing clean architecture, SOLID principles, and extensible payment integration patterns using Strategy and Factory design patterns.
 
-### Project Scope
+### 🎯 Project Purpose
 
-This project implements a complete e-commerce checkout flow with emphasis on:
-- **Payment Provider Abstraction**: Clean integration of multiple payment providers (Stripe, PayPal, Manual) using Strategy and Factory patterns
-- **Domain-Driven Design**: Well-defined entities with proper relationships and lifecycle management
-- **Transactional Consistency**: Safe cart-to-order checkout flow with rollback support
-- **Extensibility**: Easy to add new providers and features without breaking existing code
-- **Production Mindset**: Audit trails, error handling, and comprehensive logging
+This project demonstrates a **technical interview-level implementation** of a scalable e-commerce backend, with special focus on **multi-provider payment architecture** - a common real-world challenge.
 
-### Tech Stack
+### ✨ Key Features
 
-- **Framework**: NestJS with TypeScript
-- **Database**: PostgreSQL with TypeORM
-- **Validation**: Zod schemas
-- **API Documentation**: Swagger/OpenAPI
+**1. Cart Management**
+- Auto-creation of carts and users
+- Smart quantity merging for duplicate items
+- Real-time total calculation
+- Status-based modification prevention
+- Price snapshots at add-time
+
+**2. Order Processing**
+- **Transactional checkout** with rollback support
+- Immutable order snapshots (JSONB audit trail)
+- Cart lifecycle management (ACTIVE → CHECKED_OUT)
+- Order status flow (PENDING → AWAITING_PAYMENT → PAID)
+
+**3. Multi-Provider Payment System** ⭐
+- **Strategy Pattern**: Pluggable payment providers
+- **Factory Pattern**: Dynamic provider selection
+- **Webhook Handling**: Async payment confirmations
+- **Multiple Attempts**: Retry and fallback support
+- **Audit Trail**: Complete payment history with raw responses
+
+**Supported Providers**:
+- **Stripe**: Client-side flow with `clientSecret`
+- **PayPal**: Redirect flow with approval URL
+- **Manual**: Instant approval for testing/admin
+
+### 🏗️ Architecture
+
+```
+┌──────────────┐
+│     Cart     │ → Add items, calculate totals
+└──────┬───────┘
+       │ checkout (transactional)
+       ↓
+┌──────────────┐
+│    Order     │ → Immutable snapshot, AWAITING_PAYMENT
+└──────┬───────┘
+       │ initiate payment
+       ↓
+┌──────────────┐
+│   Payment    │ → Provider selection via Factory
+└──────┬───────┘
+       │
+       ├─→ Stripe (clientSecret)
+       ├─→ PayPal (redirectUrl)
+       └─→ Manual (instant)
+```
+
+For detailed architecture documentation, see **[ARCHITECTURE.md](./ARCHITECTURE.md)**
+
+### 💡 Technical Highlights
+
+- **SOLID Principles**: Single Responsibility, Open/Closed, Dependency Injection
+- **Design Patterns**: Strategy, Factory, Repository, Observer (webhooks)
+- **Transaction Safety**: Database transactions for checkout integrity
+- **Zod Validation**: Type-safe request validation
+- **Swagger Documentation**: Interactive API explorer at `/api/docs`
+- **Docker Support**: One-command environment setup
+- **TypeScript Strict Mode**: Full type safety
+- **E2E Tests**: Complete flow testing
+
+### 🛠️ Tech Stack
+
+- **Framework**: NestJS 11 with TypeScript
+- **Database**: PostgreSQL 16 with TypeORM
+- **Validation**: Zod schemas with `@anatine/zod-nestjs`
+- **API Docs**: Swagger/OpenAPI
 - **Containerization**: Docker & docker-compose
+- **Testing**: Jest with E2E tests
 
-For detailed implementation plan, see [cart.plan.md](./cart.plan.md)
+### 📊 Database Schema
 
-### Database Schema
+```
+User (1) ──────< (M) Cart (1) ──────< (M) CartItem
+  │                    │
+  │                    │ (1:1)
+  │                    ↓
+  └──────< (M) Order (1) ──────< (M) Payment
+```
 
-The platform uses a well-designed relational schema with the following entities:
-- **User**: Customer accounts
-- **Cart**: Shopping cart with items (temporary state)
-- **CartItem**: Individual products with price snapshots
-- **Order**: Immutable checkout records with item snapshots
-- **Payment**: Provider-specific payment attempts and tracking
+**Key Design Decisions**:
+- UUID primary keys for all entities
+- JSONB for flexible metadata and snapshots
+- Multiple payment attempts per order
+- Price snapshots for audit trails
 
-For detailed entity relationships and design decisions, see [Entity Relationships Documentation](./docs/ENTITY_RELATIONSHIPS.md)
+See **[docs/ENTITY_RELATIONSHIPS.md](./docs/ENTITY_RELATIONSHIPS.md)** for detailed schema documentation
 
 ## Quick Start
 
@@ -178,12 +241,249 @@ $ npm run start:prod
 # unit tests
 $ npm run test
 
-# e2e tests
+# e2e tests (includes full checkout flow)
 $ npm run test:e2e
 
 # test coverage
 $ npm run test:cov
 ```
+
+---
+
+## 🚀 API Usage Examples
+
+### Complete Checkout Flow
+
+#### 1. Add Items to Cart
+
+```bash
+# Add first item
+curl -X POST http://localhost:3000/cart/items \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "laptop-001",
+    "name": "Gaming Laptop",
+    "quantity": 1,
+    "unitPrice": "1299.99",
+    "currency": "EUR"
+  }'
+
+# Add second item with metadata
+curl -X POST http://localhost:3000/cart/items \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "mouse-002",
+    "name": "Wireless Mouse",
+    "quantity": 2,
+    "unitPrice": "49.99",
+    "currency": "EUR",
+    "metadata": {
+      "color": "black",
+      "warranty": "2years"
+    }
+  }'
+```
+
+#### 2. View Cart
+
+```bash
+curl http://localhost:3000/cart
+```
+
+#### 3. Update Item Quantity
+
+```bash
+# Replace {itemId} with actual UUID from cart response
+curl -X PATCH http://localhost:3000/cart/items/{itemId} \
+  -H "Content-Type: application/json" \
+  -d '{"quantity": 5}'
+```
+
+#### 4. Checkout (Create Order)
+
+```bash
+curl -X POST http://localhost:3000/orders/checkout \
+  -H "Content-Type: application/json" \
+  -d '{
+    "preferredPaymentProvider": "STRIPE"
+  }'
+```
+
+**Save the `id` from response as `{orderId}`**
+
+---
+
+### Payment Provider Examples
+
+#### Option A: Stripe Payment Flow
+
+**Step 1: Initiate Stripe Payment**
+```bash
+curl -X POST http://localhost:3000/payments/initiate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "orderId": "{orderId}",
+    "provider": "STRIPE"
+  }'
+```
+
+**Response includes:**
+- `clientSecret`: Use with Stripe.js on frontend
+- `externalId`: Payment intent ID
+- `status`: PENDING (awaiting confirmation)
+
+**Step 2: Simulate Stripe Webhook (Success)**
+```bash
+curl -X POST http://localhost:3000/payments/webhook/stripe \
+  -H "Content-Type: application/json" \
+  -H "x-webhook-signature: test-signature" \
+  -d '{
+    "type": "payment_intent.succeeded",
+    "data": {
+      "object": {
+        "id": "pi_xxx",
+        "status": "succeeded",
+        "amount": 129999
+      }
+    }
+  }'
+```
+
+**Step 3: Verify Order is Paid**
+```bash
+curl http://localhost:3000/orders/{orderId}
+# status should be "PAID"
+```
+
+---
+
+#### Option B: PayPal Payment Flow
+
+**Step 1: Initiate PayPal Payment**
+```bash
+curl -X POST http://localhost:3000/payments/initiate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "orderId": "{orderId}",
+    "provider": "PAYPAL"
+  }'
+```
+
+**Response includes:**
+- `redirectUrl`: URL to redirect user for PayPal approval
+- `externalId`: PayPal order ID
+- `status`: REQUIRES_ACTION
+
+**Step 2: Simulate PayPal Webhook (Approved)**
+```bash
+curl -X POST http://localhost:3000/payments/webhook/paypal \
+  -H "Content-Type: application/json" \
+  -H "x-webhook-signature: test-signature" \
+  -d '{
+    "event_type": "PAYMENT.CAPTURE.COMPLETED",
+    "resource": {
+      "id": "PAYPAL-XXX",
+      "status": "COMPLETED",
+      "amount": {"value": "1299.99"}
+    }
+  }'
+```
+
+---
+
+#### Option C: Manual Payment (Instant)
+
+**For Testing/Admin Approval**
+```bash
+curl -X POST http://localhost:3000/payments/initiate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "orderId": "{orderId}",
+    "provider": "MANUAL"
+  }'
+```
+
+**Response**: Instant COMPLETED status, order automatically marked as PAID
+
+---
+
+### Additional Operations
+
+**View All Orders**
+```bash
+curl http://localhost:3000/orders
+```
+
+**View Payment History**
+```bash
+curl http://localhost:3000/payments/order/{orderId}
+```
+
+**Remove Cart Item**
+```bash
+curl -X DELETE http://localhost:3000/cart/items/{itemId}
+```
+
+**Clear Cart**
+```bash
+curl -X DELETE http://localhost:3000/cart
+```
+
+---
+
+## 📖 API Documentation
+
+Interactive Swagger documentation available at:
+```
+http://localhost:3000/api/docs
+```
+
+Features:
+- Try-it-out functionality for all endpoints
+- Request/response schemas
+- Validation examples
+- Provider-specific flow documentation
+
+---
+
+## 🎯 Payment Provider Comparison
+
+| Provider | Flow Type | Initial Status | Response Fields | Use Case |
+|----------|-----------|----------------|-----------------|----------|
+| **STRIPE** | Client-side | PENDING | `clientSecret` | Card payments, 3D Secure |
+| **PAYPAL** | Redirect | REQUIRES_ACTION | `redirectUrl` | PayPal balance, guest |
+| **MANUAL** | Instant | COMPLETED | - | Testing, admin approval |
+
+### How Each Provider Works
+
+**Stripe**:
+1. Backend creates payment intent → `clientSecret`
+2. Frontend uses Stripe.js to collect payment
+3. Webhook confirms success → Order marked PAID
+
+**PayPal**:
+1. Backend creates PayPal order → `redirectUrl`
+2. User redirected to PayPal for approval
+3. Webhook confirms capture → Order marked PAID
+
+**Manual**:
+1. Backend instantly approves payment
+2. Order immediately marked PAID
+3. Useful for bank transfers, admin orders
+
+---
+
+## 🏗️ Adding New Payment Providers
+
+See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for detailed guide on adding providers like Adyen, Square, etc.
+
+**Summary**:
+1. Create provider class extending `PaymentProvider`
+2. Implement 4 required methods
+3. Register in `PaymentProviderFactory`
+4. Add to enum
+
+**No changes needed** to controllers, services, or database!
 
 ## Deployment
 

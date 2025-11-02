@@ -1,34 +1,41 @@
 import { Controller, Get, Post, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 import { OrderService } from './order.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { CurrentUserData } from '../../common/decorators/current-user.decorator';
 import { CheckoutDto } from './dto/checkout.dto';
 
+@ApiTags('orders')
 @Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
-  /**
-   * Checkout active cart and create order
-   */
   @Post('checkout')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Checkout cart',
+    description: 'Transform active cart into order with transactional safety. Cart items are snapshot for audit trail.',
+  })
+  @ApiBody({ type: CheckoutDto })
+  @ApiResponse({ status: 201, description: 'Order created successfully' })
+  @ApiResponse({ status: 400, description: 'Empty cart or invalid cart state' })
+  @ApiResponse({ status: 404, description: 'No active cart found' })
   async checkout(@CurrentUser() user: CurrentUserData, @Body() dto: CheckoutDto) {
     return this.orderService.checkout(user.id, dto);
   }
 
-  /**
-   * Get all orders for current user
-   */
   @Get()
+  @ApiOperation({ summary: 'List orders', description: 'Get all orders for current user with payment history' })
+  @ApiResponse({ status: 200, description: 'Orders retrieved successfully' })
   async getOrders(@CurrentUser() user: CurrentUserData) {
     return this.orderService.getOrders(user.id);
   }
 
-  /**
-   * Get specific order by ID
-   */
   @Get(':orderId')
+  @ApiOperation({ summary: 'Get order details', description: 'Retrieve specific order with payments and cart reference' })
+  @ApiParam({ name: 'orderId', description: 'Order UUID' })
+  @ApiResponse({ status: 200, description: 'Order retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
   async getOrderById(
     @CurrentUser() user: CurrentUserData,
     @Param('orderId') orderId: string,

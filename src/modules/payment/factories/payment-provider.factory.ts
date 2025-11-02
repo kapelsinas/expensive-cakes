@@ -14,8 +14,8 @@ export class PaymentProviderFactory {
     private readonly paypalProvider: PayPalPaymentProvider,
     private readonly manualProvider: ManualPaymentProvider,
   ) {
-    // Register all providers in the map
-    this.providers = new Map([
+    // Register all providers in the map with correct typing
+    this.providers = new Map<PaymentProviderEnum, PaymentProvider>([
       [PaymentProviderEnum.STRIPE, this.stripeProvider],
       [PaymentProviderEnum.PAYPAL, this.paypalProvider],
       [PaymentProviderEnum.MANUAL, this.manualProvider],
