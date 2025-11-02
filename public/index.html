@@ -8,13 +8,21 @@
 </head>
 <body>
   <div class="container">
-    <h1>🛒 Shopping Cart</h1>
+    <h1>🛒 Shopping Cart Demo</h1>
     
     <div id="error-message" class="message error"></div>
     <div id="success-message" class="message success"></div>
 
-    <h2>Add Item</h2>
-    <form id="add-item-form">
+    <h2>Products</h2>
+    <div class="products-grid" id="products-grid">
+      <!-- Products will be rendered here -->
+    </div>
+
+    <details class="manual-add-section">
+      <summary style="cursor: pointer; padding: 10px; background: #f8f9fa; border-radius: 4px; margin-top: 20px;">
+        <strong>➕ Add Custom Item (Manual)</strong>
+      </summary>
+      <form id="add-item-form" style="margin-top: 15px;">
       <div class="form-group">
         <label for="productId">Product ID</label>
         <input type="text" id="productId" required placeholder="e.g., laptop-001">
@@ -40,6 +48,7 @@
       </div>
       <button type="submit">Add to Cart</button>
     </form>
+    </details>
 
     <h2>Cart Items</h2>
     <div id="cart-container">
@@ -66,8 +75,101 @@
 
   <script src="/js/app.js"></script>
   <script>
+    // Predefined products
+    const PRODUCTS = [
+      {
+        productId: 'laptop-001',
+        name: 'Gaming Laptop',
+        price: '1299.99',
+        currency: 'EUR',
+        description: 'High-performance gaming laptop with RTX 4060'
+      },
+      {
+        productId: 'mouse-002',
+        name: 'Wireless Mouse',
+        price: '49.99',
+        currency: 'EUR',
+        description: 'Ergonomic wireless mouse with long battery life'
+      },
+      {
+        productId: 'keyboard-003',
+        name: 'Mechanical Keyboard',
+        price: '149.99',
+        currency: 'EUR',
+        description: 'RGB backlit mechanical keyboard (Cherry MX switches)'
+      },
+      {
+        productId: 'monitor-004',
+        name: '4K Monitor',
+        price: '599.99',
+        currency: 'EUR',
+        description: '27" 4K IPS monitor with HDR support'
+      },
+      {
+        productId: 'headset-005',
+        name: 'Gaming Headset',
+        price: '89.99',
+        currency: 'EUR',
+        description: '7.1 surround sound gaming headset with microphone'
+      },
+      {
+        productId: 'webcam-006',
+        name: 'HD Webcam',
+        price: '79.99',
+        currency: 'EUR',
+        description: '1080p webcam with autofocus and privacy shutter'
+      }
+    ];
+
+    // Render products
+    function renderProducts() {
+      const grid = document.getElementById('products-grid');
+      grid.innerHTML = PRODUCTS.map(product => `
+        <div class="product-card">
+          <div class="product-info">
+            <h3 class="product-name">${product.name}</h3>
+            <p class="product-description">${product.description}</p>
+            <div class="product-price">${utils.formatPrice(product.price, product.currency)}</div>
+          </div>
+          <button class="btn-add-to-cart" data-product-id="${product.productId}" 
+                  data-name="${product.name}" 
+                  data-price="${product.price}" 
+                  data-currency="${product.currency}">
+            Add to Cart
+          </button>
+        </div>
+      `).join('');
+
+      // Add event listeners to all "Add to Cart" buttons
+      document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const product = {
+            productId: e.target.dataset.productId,
+            name: e.target.dataset.name,
+            quantity: 1,
+            unitPrice: e.target.dataset.price,
+            currency: e.target.dataset.currency
+          };
+
+          utils.setLoading(e.target, true);
+          try {
+            await api.addItem(product);
+            utils.showSuccess(`${product.name} added to cart`);
+            await loadCart();
+          } catch (error) {
+            utils.showError(error.message || 'Failed to add item');
+          } finally {
+            utils.setLoading(e.target, false);
+          }
+        });
+      });
+    }
+
     // Load cart on page load
-    document.addEventListener('DOMContentLoaded', loadCart);
+    document.addEventListener('DOMContentLoaded', () => {
+      renderProducts();
+      loadCart();
+    });
 
     // Add item form handler
     document.getElementById('add-item-form').addEventListener('submit', async (e) => {
