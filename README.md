@@ -120,7 +120,7 @@ See **[docs/ENTITY_RELATIONSHIPS.md](./docs/ENTITY_RELATIONSHIPS.md)** for detai
 
 ## Quick Start
 
-Get up and running in 3 simple steps:
+Get up and running in 5 simple steps:
 
 ```bash
 # 1. Install dependencies
@@ -129,17 +129,37 @@ npm install
 # 2. Copy environment file
 cp env.example .env
 
-# 3. Start database with Docker
+# 3. Start PostgreSQL database with Docker
 npm run docker:up
 
-# 4. Run migrations (if any)
+# 4. Run database migrations
 npm run migration:run
 
 # 5. Start the application
 npm run start:dev
 ```
 
-The application will be available at `http://localhost:3000`
+The application will be available at:
+- **Main UI**: `http://localhost:3000` (demo frontend)
+- **API Docs**: `http://localhost:3000/api/docs` (Swagger)
+- **API**: `http://localhost:3000/cart`, `/orders`, `/payments`
+
+### Docker Setup
+
+The project includes `docker-compose.yml` with PostgreSQL 16. To manage the database:
+
+```bash
+# Start database (runs in background)
+npm run docker:up
+
+# Stop database
+npm run docker:down
+
+# View database logs
+npm run docker:logs
+```
+
+The database is accessible at `localhost:5433` (check `docker-compose.yml` for port mapping).
 
 ## Project Setup
 
@@ -484,6 +504,95 @@ See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for detailed guide on adding provid
 4. Add to enum
 
 **No changes needed** to controllers, services, or database!
+
+---
+
+## 📝 What Was Implemented
+
+This project delivers a complete **cart-to-order-to-payment** flow with multi-provider payment architecture:
+
+### Core Functionality
+- ✅ **Cart Management**: Add, update quantity, remove items with automatic total calculation
+- ✅ **Checkout Flow**: Transactional cart-to-order conversion with immutable item snapshots
+- ✅ **Order Management**: Status tracking (AWAITING_PAYMENT → PAID/FAILED), order history
+- ✅ **Payment Processing**: Three payment providers (Stripe, PayPal, Manual) with Strategy pattern
+- ✅ **Webhook Handling**: Async payment confirmations from providers
+- ✅ **Payment History**: Track multiple payment attempts per order
+
+### Architecture Highlights
+- ✅ **Strategy Pattern**: Pluggable payment providers via abstract interface
+- ✅ **Factory Pattern**: Dynamic provider selection at runtime
+- ✅ **SOLID Principles**: Clear separation of concerns, dependency injection
+- ✅ **Transaction Safety**: Database transactions ensure checkout integrity
+- ✅ **Audit Trail**: Immutable order snapshots and complete payment records
+
+### Developer Experience
+- ✅ **Swagger Documentation**: Interactive API explorer with request examples
+- ✅ **E2E Tests**: Full flow testing (21 test cases covering cart → order → payment)
+- ✅ **Demo UI**: Vanilla HTML/JS frontend demonstrating complete flow
+- ✅ **Type Safety**: Full TypeScript with Zod validation
+- ✅ **Docker Setup**: One-command database environment
+
+### Technical Implementation
+- ✅ **Database Schema**: PostgreSQL with UUIDs, JSONB for flexibility
+- ✅ **API Endpoints**: RESTful design with proper HTTP status codes
+- ✅ **Error Handling**: User-friendly error messages with validation
+- ✅ **Code Quality**: ESLint, Prettier, consistent code style
+
+---
+
+## 🚀 Future Features
+
+### Planned Enhancements
+
+**1. Discount & Promotion System**
+- Discount codes with validation rules (percentage, fixed amount, free shipping)
+- Automatic discount application at checkout
+- Discount usage limits and expiration dates
+- Promotion campaigns (buy X get Y, seasonal sales)
+
+**2. Product Catalog Integration**
+- Product entity with inventory management
+- Stock reservation during checkout
+- Product variants (size, color, etc.)
+- Product recommendations and cross-sell
+
+**3. Advanced Order Management**
+- Order cancellation with refund processing
+- Partial refunds and exchanges
+- Order status notifications (email, SMS)
+- Shipping address and delivery tracking
+
+**4. Payment Enhancements**
+- Additional providers (Adyen, Square, Klarna, Apple Pay, Google Pay)
+- Saved payment methods for returning customers
+- Split payments (multiple methods per order)
+- Subscription/recurring payments
+
+**5. User & Authentication**
+- JWT-based authentication
+- User profiles and preferences
+- Order history and favorites
+- Guest checkout option
+
+**6. Analytics & Reporting**
+- Order analytics dashboard
+- Payment provider performance metrics
+- Revenue reports by provider
+- Cart abandonment tracking
+
+**7. Multi-Currency Support**
+- Real-time exchange rate conversion
+- Currency preference per user
+- Multi-currency cart support
+
+**8. Inventory Management**
+- Stock level tracking
+- Low stock alerts
+- Reserved inventory during checkout
+- Backorder handling
+
+---
 
 ## Deployment
 
