@@ -68,4 +68,3 @@ export class ManualPaymentProvider extends PaymentProvider {
     return PaymentStatus.COMPLETED;
   }
 }
-

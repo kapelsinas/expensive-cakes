@@ -16,4 +16,3 @@ export class CheckoutDto extends createZodDto(CheckoutSchema) {
   })
   preferredPaymentProvider?: PaymentProvider;
 }
-

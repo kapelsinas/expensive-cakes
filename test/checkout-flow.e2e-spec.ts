@@ -163,14 +163,12 @@ describe('Complete Checkout Flow (e2e)', () => {
     });
 
     it('7. Should not be able to add items to checked-out cart', async () => {
-      const result = await request(app.getHttpServer())
-        .post('/cart/items')
-        .send({
-          productId: 'keyboard-003',
-          name: 'Mechanical Keyboard',
-          quantity: 1,
-          unitPrice: '159.99',
-        });
+      const result = await request(app.getHttpServer()).post('/cart/items').send({
+        productId: 'keyboard-003',
+        name: 'Mechanical Keyboard',
+        quantity: 1,
+        unitPrice: '159.99',
+      });
 
       // After checkout, the cart is CHECKED_OUT, so trying to add items creates a NEW cart
       // This is actually valid behavior - the user gets a new cart automatically
@@ -180,9 +178,7 @@ describe('Complete Checkout Flow (e2e)', () => {
     });
 
     it('8. Should retrieve order details', async () => {
-      const response = await request(app.getHttpServer())
-        .get(`/orders/${orderId}`)
-        .expect(200);
+      const response = await request(app.getHttpServer()).get(`/orders/${orderId}`).expect(200);
 
       expect(response.body.id).toBe(orderId);
       expect(response.body.status).toBe('AWAITING_PAYMENT');
@@ -234,9 +230,7 @@ describe('Complete Checkout Flow (e2e)', () => {
     });
 
     it('12. Should verify order is PAID after manual payment', async () => {
-      const response = await request(app.getHttpServer())
-        .get(`/orders/${orderId}`)
-        .expect(200);
+      const response = await request(app.getHttpServer()).get(`/orders/${orderId}`).expect(200);
 
       expect(response.body.status).toBe('PAID');
     });
@@ -395,19 +389,14 @@ describe('Complete Checkout Flow (e2e)', () => {
       await request(app.getHttpServer()).get('/cart').expect(200);
 
       // Try to checkout
-      await request(app.getHttpServer())
-        .post('/orders/checkout')
-        .send({})
-        .expect(400);
+      await request(app.getHttpServer()).post('/orders/checkout').send({}).expect(400);
     });
 
     it('Should validate item data', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/cart/items')
-        .send({
-          productId: 'test',
-          // Missing required fields (name, quantity, unitPrice)
-        });
+      const response = await request(app.getHttpServer()).post('/cart/items').send({
+        productId: 'test',
+        // Missing required fields (name, quantity, unitPrice)
+      });
 
       // Zod validation errors return 500 (unhandled exception)
       // The important part is that invalid data is rejected
@@ -442,4 +431,3 @@ describe('Complete Checkout Flow (e2e)', () => {
     });
   });
 });
-

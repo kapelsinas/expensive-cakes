@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Order, OrderItemSnapshot } from '../../database/entities/order.entity';
@@ -116,4 +112,3 @@ export class OrderService {
     return this.orderRepository.save(order);
   }
 }
-

@@ -64,4 +64,3 @@ export class AddCartItemDto extends createZodDto(AddCartItemSchema) {
   })
   metadata?: Record<string, unknown>;
 }
-

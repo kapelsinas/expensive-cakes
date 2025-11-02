@@ -13,4 +13,3 @@ import { User } from '../../database/entities/user.entity';
   exports: [CartService],
 })
 export class CartModule {}
-

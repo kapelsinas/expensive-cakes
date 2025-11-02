@@ -49,4 +49,3 @@ export class PaymentProviderFactory {
     return this.providers.has(providerName);
   }
 }
-

@@ -14,7 +14,8 @@ export class OrderController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Checkout cart',
-    description: 'Transform active cart into order with transactional safety. Cart items are snapshot for audit trail.',
+    description:
+      'Transform active cart into order with transactional safety. Cart items are snapshot for audit trail.',
   })
   @ApiBody({ type: CheckoutDto })
   @ApiResponse({ status: 201, description: 'Order created successfully' })
@@ -25,22 +26,24 @@ export class OrderController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List orders', description: 'Get all orders for current user with payment history' })
+  @ApiOperation({
+    summary: 'List orders',
+    description: 'Get all orders for current user with payment history',
+  })
   @ApiResponse({ status: 200, description: 'Orders retrieved successfully' })
   async getOrders(@CurrentUser() user: CurrentUserData) {
     return this.orderService.getOrders(user.id);
   }
 
   @Get(':orderId')
-  @ApiOperation({ summary: 'Get order details', description: 'Retrieve specific order with payments and cart reference' })
+  @ApiOperation({
+    summary: 'Get order details',
+    description: 'Retrieve specific order with payments and cart reference',
+  })
   @ApiParam({ name: 'orderId', description: 'Order UUID' })
   @ApiResponse({ status: 200, description: 'Order retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  async getOrderById(
-    @CurrentUser() user: CurrentUserData,
-    @Param('orderId') orderId: string,
-  ) {
+  async getOrderById(@CurrentUser() user: CurrentUserData, @Param('orderId') orderId: string) {
     return this.orderService.getOrderById(user.id, orderId);
   }
 }
-

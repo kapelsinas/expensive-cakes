@@ -47,4 +47,3 @@ export abstract class PaymentProvider {
    */
   abstract getPaymentStatus(externalId: string): Promise<PaymentStatus>;
 }
-

@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Param,
-  Headers,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Headers, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiHeader } from '@nestjs/swagger';
 import { PaymentService } from './payment.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -45,7 +36,10 @@ export class PaymentController {
       'Supports STRIPE, PAYPAL, and MANUAL providers.',
   })
   @ApiParam({ name: 'provider', enum: PaymentProvider, description: 'Payment provider name' })
-  @ApiHeader({ name: 'x-webhook-signature', description: 'Provider webhook signature for verification' })
+  @ApiHeader({
+    name: 'x-webhook-signature',
+    description: 'Provider webhook signature for verification',
+  })
   @ApiResponse({ status: 200, description: 'Webhook processed successfully' })
   @ApiResponse({ status: 400, description: 'Invalid signature or unsupported provider' })
   async handleWebhook(
@@ -66,11 +60,7 @@ export class PaymentController {
   @ApiParam({ name: 'orderId', description: 'Order UUID' })
   @ApiResponse({ status: 200, description: 'Payments retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  async getOrderPayments(
-    @CurrentUser() user: CurrentUserData,
-    @Param('orderId') orderId: string,
-  ) {
+  async getOrderPayments(@CurrentUser() user: CurrentUserData, @Param('orderId') orderId: string) {
     return this.paymentService.getOrderPayments(user.id, orderId);
   }
 }
-

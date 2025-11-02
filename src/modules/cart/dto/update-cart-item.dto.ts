@@ -15,4 +15,3 @@ export class UpdateCartItemDto extends createZodDto(UpdateCartItemSchema) {
   })
   quantity!: number;
 }
-

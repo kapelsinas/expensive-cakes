@@ -76,10 +76,7 @@ export class CartService {
     if (existingItem) {
       // Update quantity
       existingItem.quantity += dto.quantity;
-      existingItem.subtotal = this.calculateSubtotal(
-        existingItem.unitPrice,
-        existingItem.quantity,
-      );
+      existingItem.subtotal = this.calculateSubtotal(existingItem.unitPrice, existingItem.quantity);
       await this.cartItemRepository.save(existingItem);
     } else {
       // Create new cart item
@@ -116,11 +113,7 @@ export class CartService {
   /**
    * Update cart item quantity
    */
-  async updateItem(
-    userId: string,
-    itemId: string,
-    dto: UpdateCartItemDto,
-  ): Promise<Cart> {
+  async updateItem(userId: string, itemId: string, dto: UpdateCartItemDto): Promise<Cart> {
     const cart = await this.getOrCreateCart(userId);
 
     if (cart.status !== CartStatus.ACTIVE) {
@@ -241,4 +234,3 @@ export class CartService {
     await this.cartRepository.save(cart);
   }
 }
-

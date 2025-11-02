@@ -97,4 +97,3 @@ export class StripePaymentProvider extends PaymentProvider {
     }
   }
 }
-

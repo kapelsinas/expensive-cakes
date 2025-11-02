@@ -23,4 +23,3 @@ export class InitiatePaymentDto extends createZodDto(InitiatePaymentSchema) {
   })
   provider!: PaymentProvider;
 }
-
