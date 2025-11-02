@@ -39,11 +39,15 @@ export class CartService {
       await this.userRepository.save(user);
     }
 
-    // Find active cart
-    let cart = await this.cartRepository.findOne({
-      where: { user: { id: userId }, status: CartStatus.ACTIVE },
-      relations: ['items'],
-    });
+    // Find active cart with ordered items
+    let cart = await this.cartRepository
+      .createQueryBuilder('cart')
+      .leftJoinAndSelect('cart.items', 'items')
+      .leftJoin('cart.user', 'user')
+      .where('user.id = :userId', { userId })
+      .andWhere('cart.status = :status', { status: CartStatus.ACTIVE })
+      .orderBy('items.createdAt', 'ASC')
+      .getOne();
 
     // Create new cart if none exists
     if (!cart) {
@@ -98,10 +102,12 @@ export class CartService {
     // Recalculate cart totals
     await this.recalculateCartTotals(cart);
 
-    const result = await this.cartRepository.findOne({
-      where: { id: cart.id },
-      relations: ['items'],
-    });
+    const result = await this.cartRepository
+      .createQueryBuilder('cart')
+      .leftJoinAndSelect('cart.items', 'items')
+      .where('cart.id = :id', { id: cart.id })
+      .orderBy('items.createdAt', 'ASC')
+      .getOne();
 
     if (!result) {
       throw new InternalServerErrorException('Failed to retrieve cart after adding item');
@@ -131,10 +137,12 @@ export class CartService {
 
     await this.recalculateCartTotals(cart);
 
-    const result = await this.cartRepository.findOne({
-      where: { id: cart.id },
-      relations: ['items'],
-    });
+    const result = await this.cartRepository
+      .createQueryBuilder('cart')
+      .leftJoinAndSelect('cart.items', 'items')
+      .where('cart.id = :id', { id: cart.id })
+      .orderBy('items.createdAt', 'ASC')
+      .getOne();
 
     if (!result) {
       throw new InternalServerErrorException('Failed to retrieve cart after updating item');
@@ -158,19 +166,39 @@ export class CartService {
       throw new NotFoundException('Cart item not found');
     }
 
-    await this.cartItemRepository.remove(item);
-    cart.items = cart.items.filter((i) => i.id !== itemId);
+    const deleteResult = await this.cartItemRepository.delete({ id: itemId });
+    
+    if (deleteResult.affected === 0) {
+      throw new NotFoundException('Cart item not found or already deleted');
+    }
 
-    await this.recalculateCartTotals(cart);
+    // Fetch fresh cart without the deleted item (ordered)
+    const updatedCart = await this.cartRepository
+      .createQueryBuilder('cart')
+      .leftJoinAndSelect('cart.items', 'items')
+      .where('cart.id = :id', { id: cart.id })
+      .orderBy('items.createdAt', 'ASC')
+      .getOne();
 
-    const result = await this.cartRepository.findOne({
-      where: { id: cart.id },
-      relations: ['items'],
-    });
+    if (!updatedCart) {
+      throw new InternalServerErrorException('Failed to retrieve cart after removing item');
+    }
+
+    // Recalculate totals based on remaining items
+    await this.recalculateCartTotals(updatedCart);
+
+    // Return fresh cart with updated totals (ordered)
+    const result = await this.cartRepository
+      .createQueryBuilder('cart')
+      .leftJoinAndSelect('cart.items', 'items')
+      .where('cart.id = :id', { id: cart.id })
+      .orderBy('items.createdAt', 'ASC')
+      .getOne();
 
     if (!result) {
-      throw new InternalServerErrorException('Failed to remove item from cart');
+      throw new InternalServerErrorException('Failed to retrieve cart after removing item');
     }
+
     return result;
   }
 
