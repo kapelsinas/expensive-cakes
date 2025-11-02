@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cart - Checkout Demo</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🛒 Shopping Cart</h1>
+    
+    <div id="error-message" class="message error"></div>
+    <div id="success-message" class="message success"></div>
+
+    <h2>Add Item</h2>
+    <form id="add-item-form">
+      <div class="form-group">
+        <label for="productId">Product ID</label>
+        <input type="text" id="productId" required placeholder="e.g., laptop-001">
+      </div>
+      <div class="form-group">
+        <label for="name">Product Name</label>
+        <input type="text" id="name" required placeholder="e.g., Gaming Laptop">
+      </div>
+      <div class="form-group">
+        <label for="quantity">Quantity</label>
+        <input type="number" id="quantity" min="1" max="999" value="1" required>
+      </div>
+      <div class="form-group">
+        <label for="unitPrice">Unit Price</label>
+        <input type="text" id="unitPrice" required placeholder="e.g., 1299.99" pattern="^\d+(\.\d{1,2})?$">
+      </div>
+      <div class="form-group">
+        <label for="currency">Currency</label>
+        <select id="currency">
+          <option value="EUR">EUR</option>
+          <option value="USD">USD</option>
+        </select>
+      </div>
+      <button type="submit">Add to Cart</button>
+    </form>
+
+    <h2>Cart Items</h2>
+    <div id="cart-container">
+      <div class="empty-state">Cart is empty</div>
+    </div>
+
+    <div id="cart-summary" style="display: none;">
+      <div class="cart-summary">
+        <div class="summary-row">
+          <span>Subtotal:</span>
+          <span id="subtotal">€0.00</span>
+        </div>
+        <div class="summary-row total">
+          <span>Total:</span>
+          <span id="total">€0.00</span>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="clear-cart-btn" class="btn-danger">Clear Cart</button>
+        <button id="checkout-btn" class="btn-success">Checkout</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    // Load cart on page load
+    document.addEventListener('DOMContentLoaded', loadCart);
+
+    // Add item form handler
+    document.getElementById('add-item-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      utils.setLoading(btn, true);
+
+      try {
+        const item = {
+          productId: document.getElementById('productId').value,
+          name: document.getElementById('name').value,
+          quantity: parseInt(document.getElementById('quantity').value),
+          unitPrice: document.getElementById('unitPrice').value,
+          currency: document.getElementById('currency').value,
+        };
+        
+        await api.addItem(item);
+        utils.showSuccess('Item added to cart');
+        e.target.reset();
+        await loadCart();
+      } catch (error) {
+        utils.showError(error.message || 'Failed to add item');
+      } finally {
+        utils.setLoading(btn, false);
+      }
+    });
+
+    // Clear cart handler
+    document.getElementById('clear-cart-btn').addEventListener('click', async () => {
+      if (!confirm('Clear all items from cart?')) return;
+      
+      const btn = document.getElementById('clear-cart-btn');
+      utils.setLoading(btn, true);
+
+      try {
+        await api.clearCart();
+        utils.showSuccess('Cart cleared');
+        await loadCart();
+      } catch (error) {
+        utils.showError(error.message || 'Failed to clear cart');
+      } finally {
+        utils.setLoading(btn, false);
+      }
+    });
+
+    // Checkout handler
+    document.getElementById('checkout-btn').addEventListener('click', () => {
+      window.location.href = '/checkout.html';
+    });
+
+    // Load and display cart
+    async function loadCart() {
+      try {
+        const cart = await api.getCart();
+        renderCart(cart);
+      } catch (error) {
+        utils.showError(error.message || 'Failed to load cart');
+      }
+    }
+
+    function renderCart(cart) {
+      const container = document.getElementById('cart-container');
+      const summary = document.getElementById('cart-summary');
+
+      if (!cart.items || cart.items.length === 0) {
+        container.innerHTML = '<div class="empty-state">Cart is empty</div>';
+        summary.style.display = 'none';
+        return;
+      }
+
+      summary.style.display = 'block';
+      
+      container.innerHTML = '<ul class="cart-items"></ul>';
+      const itemsList = container.querySelector('ul');
+
+      cart.items.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'cart-item';
+        li.innerHTML = `
+          <div class="item-info">
+            <div class="item-name">${item.name}</div>
+            <div class="item-details">
+              ${item.quantity}x ${utils.formatPrice(item.unitPrice, item.currency)} = ${utils.formatPrice(item.subtotal, item.currency)}
+            </div>
+          </div>
+          <div class="item-actions">
+            <button class="quantity-btn decrease-item" data-item-id="${item.id}" data-quantity="${item.quantity}">−</button>
+            <span style="margin: 0 10px; font-weight: 500;">${item.quantity}</span>
+            <button class="quantity-btn increase-item" data-item-id="${item.id}" data-quantity="${item.quantity}">+</button>
+            <button class="btn-danger remove-item" data-item-id="${item.id}">Remove</button>
+          </div>
+        `;
+        itemsList.appendChild(li);
+      });
+
+      // Increase quantity handlers
+      document.querySelectorAll('.increase-item').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const itemId = e.target.dataset.itemId;
+          const currentQuantity = parseInt(e.target.dataset.quantity);
+          const newQuantity = currentQuantity + 1;
+          utils.setLoading(btn, true);
+
+          try {
+            await api.updateItem(itemId, newQuantity);
+            utils.showSuccess('Quantity updated');
+            await loadCart();
+          } catch (error) {
+            utils.showError(error.message || 'Failed to update quantity');
+          } finally {
+            utils.setLoading(btn, false);
+          }
+        });
+      });
+
+      // Decrease quantity handlers
+      document.querySelectorAll('.decrease-item').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const itemId = e.target.dataset.itemId;
+          const currentQuantity = parseInt(e.target.dataset.quantity);
+          const newQuantity = Math.max(1, currentQuantity - 1);
+          utils.setLoading(btn, true);
+
+          try {
+            await api.updateItem(itemId, newQuantity);
+            utils.showSuccess('Quantity updated');
+            await loadCart();
+          } catch (error) {
+            utils.showError(error.message || 'Failed to update quantity');
+          } finally {
+            utils.setLoading(btn, false);
+          }
+        });
+      });
+
+      // Remove item handlers
+      document.querySelectorAll('.remove-item').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const itemId = e.target.dataset.itemId;
+          utils.setLoading(btn, true);
+
+          try {
+            await api.removeItem(itemId);
+            utils.showSuccess('Item removed');
+            await loadCart();
+          } catch (error) {
+            utils.showError(error.message || 'Failed to remove item');
+          } finally {
+            utils.setLoading(btn, false);
+          }
+        });
+      });
+
+      // Update totals
+      document.getElementById('subtotal').textContent = utils.formatPrice(cart.subtotal, cart.currency);
+      document.getElementById('total').textContent = utils.formatPrice(cart.total, cart.currency);
+    }
+  </script>
+</body>
+</html>

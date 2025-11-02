@@ -35,6 +35,26 @@ export class OrderController {
     return this.orderService.getOrders(user.id);
   }
 
+  @Get(':orderId/status')
+  @ApiOperation({
+    summary: 'Get order status (lightweight)',
+    description: 'Get lightweight order status for polling. Returns only status, totalAmount, and currency.',
+  })
+  @ApiParam({ name: 'orderId', description: 'Order UUID' })
+  @ApiResponse({ status: 200, description: 'Order status retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  async getOrderStatus(
+    @CurrentUser() user: CurrentUserData,
+    @Param('orderId') orderId: string,
+  ) {
+    const order = await this.orderService.getOrderById(user.id, orderId);
+    return {
+      status: order.status,
+      totalAmount: order.totalAmount,
+      currency: order.currency,
+    };
+  }
+
   @Get(':orderId')
   @ApiOperation({
     summary: 'Get order details',

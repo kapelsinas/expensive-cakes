@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout - Payment</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>💳 Checkout</h1>
+    
+    <div id="error-message" class="message error"></div>
+    <div id="success-message" class="message success"></div>
+
+    <div id="cart-summary-section">
+      <h2>Order Summary</h2>
+      <div id="cart-summary"></div>
+    </div>
+
+    <div id="checkout-section">
+      <h2>Select Payment Provider</h2>
+      <div class="provider-selector">
+        <label class="provider-option">
+          <input type="radio" name="provider" value="STRIPE">
+          <div>💳 Stripe</div>
+        </label>
+        <label class="provider-option">
+          <input type="radio" name="provider" value="PAYPAL">
+          <div>🌐 PayPal</div>
+        </label>
+        <label class="provider-option">
+          <input type="radio" name="provider" value="MANUAL" checked>
+          <div>✅ Manual (Demo)</div>
+        </label>
+      </div>
+
+      <button id="initiate-checkout-btn" class="btn-success">Checkout & Pay</button>
+    </div>
+
+    <div id="payment-section" style="display: none;">
+      <h2>Complete Payment</h2>
+      <div id="payment-content"></div>
+    </div>
+
+    <div class="actions" style="margin-top: 30px;">
+      <button class="btn-secondary" onclick="window.location.href='/'">Back to Cart</button>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    let currentOrderId = null;
+    let currentProvider = null;
+
+    // Provider selector
+    document.querySelectorAll('input[name="provider"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        document.querySelectorAll('.provider-option').forEach(opt => {
+          opt.classList.toggle('selected', opt.querySelector('input').checked);
+        });
+      });
+    });
+
+    // Initialize selected state
+    document.querySelector('.provider-option input[checked]').parentElement.classList.add('selected');
+
+    // Load cart on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const cart = await api.getCart();
+        if (!cart.items || cart.items.length === 0) {
+          utils.showError('Cart is empty');
+          setTimeout(() => window.location.href = '/', 2000);
+          return;
+        }
+        renderCartSummary(cart);
+      } catch (error) {
+        utils.showError(error.message || 'Failed to load cart');
+      }
+    });
+
+    // Checkout handler
+    document.getElementById('initiate-checkout-btn').addEventListener('click', async () => {
+      const provider = document.querySelector('input[name="provider"]:checked').value;
+      const btn = document.getElementById('initiate-checkout-btn');
+      utils.setLoading(btn, true);
+
+      try {
+        // Step 1: Checkout cart
+        const order = await api.checkout(provider);
+        currentOrderId = order.id;
+        currentProvider = provider;
+        
+        // Step 2: Initiate payment
+        const payment = await api.initiatePayment(order.id, provider);
+        
+        // Step 3: Handle payment based on provider
+        document.getElementById('checkout-section').style.display = 'none';
+        document.getElementById('payment-section').style.display = 'block';
+        
+        handlePayment(payment, provider, order.id);
+      } catch (error) {
+        utils.showError(error.message || 'Failed to initiate checkout');
+      } finally {
+        utils.setLoading(btn, false);
+      }
+    });
+
+    function renderCartSummary(cart) {
+      const summary = document.getElementById('cart-summary');
+      let html = '<div class="cart-summary">';
+      
+      cart.items.forEach(item => {
+        html += `
+          <div style="margin-bottom: 10px;">
+            <strong>${item.name}</strong> - ${item.quantity}x ${utils.formatPrice(item.unitPrice, item.currency)}
+          </div>
+        `;
+      });
+
+      html += `
+        <div class="summary-row total">
+          <span>Total:</span>
+          <span>${utils.formatPrice(cart.total, cart.currency)}</span>
+        </div>
+      </div>`;
+      
+      summary.innerHTML = html;
+    }
+
+    async function handlePayment(payment, provider, orderId) {
+      const content = document.getElementById('payment-content');
+      
+      if (provider === 'MANUAL') {
+        // Manual payment is instant
+        content.innerHTML = `
+          <div class="payment-form active">
+            <p style="color: #27ae60; font-weight: bold;">✓ Payment completed instantly!</p>
+            <p>Redirecting to receipt...</p>
+          </div>
+        `;
+        
+        // Payment is already completed for MANUAL
+        setTimeout(() => {
+          window.location.href = `/receipt.html?orderId=${orderId}`;
+        }, 1500);
+        return;
+      }
+
+      if (provider === 'STRIPE') {
+        // Stripe payment form (mock)
+        content.innerHTML = `
+          <div class="payment-form active">
+            <p>Stripe Payment Intent Created</p>
+            <p><strong>Client Secret:</strong> ${payment.rawResponse.clientSecret}</p>
+            <p>In a real implementation, you would use Stripe.js to collect payment details.</p>
+            <form id="stripe-payment-form" style="margin-top: 20px;">
+              <div class="form-group">
+                <label>Card Number (Mock)</label>
+                <input type="text" placeholder="4242 4242 4242 4242" value="4242 4242 4242 4242">
+              </div>
+              <div class="form-group">
+                <label>Expiry</label>
+                <input type="text" placeholder="12/25" value="12/25">
+              </div>
+              <div class="form-group">
+                <label>CVC</label>
+                <input type="text" placeholder="123" value="123">
+              </div>
+              <button type="submit" class="btn-success">Complete Payment</button>
+            </form>
+          </div>
+        `;
+
+        document.getElementById('stripe-payment-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const btn = e.target.querySelector('button');
+          utils.setLoading(btn, true);
+
+          try {
+            // Simulate Stripe webhook
+            await fetch('/payments/webhook/stripe', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-webhook-signature': 'test-signature',
+              },
+              body: JSON.stringify({
+                type: 'payment_intent.succeeded',
+                data: {
+                  object: {
+                    id: payment.externalId,
+                    status: 'succeeded',
+                    amount: parseFloat(payment.amount) * 100,
+                  },
+                },
+              }),
+            });
+
+            // Poll for order status
+            utils.pollOrderStatus(orderId, (status) => {
+              if (status.status === 'PAID') {
+                window.location.href = `/receipt.html?orderId=${orderId}`;
+              } else {
+                utils.showError('Payment failed');
+              }
+            });
+          } catch (error) {
+            utils.showError(error.message || 'Payment failed');
+            utils.setLoading(btn, false);
+          }
+        });
+      }
+
+      if (provider === 'PAYPAL') {
+        // PayPal redirect
+        content.innerHTML = `
+          <div class="payment-form active">
+            <p>Redirect to PayPal</p>
+            <p><strong>Redirect URL:</strong> ${payment.rawResponse.redirectUrl}</p>
+            <p>In a real implementation, the user would be redirected to PayPal.</p>
+            <button id="simulate-paypal-btn" class="btn-success">Simulate PayPal Return</button>
+          </div>
+        `;
+
+        document.getElementById('simulate-paypal-btn').addEventListener('click', async () => {
+          const btn = document.getElementById('simulate-paypal-btn');
+          utils.setLoading(btn, true);
+
+          try {
+            // Simulate PayPal webhook
+            await fetch('/payments/webhook/paypal', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-webhook-signature': 'test-signature',
+              },
+              body: JSON.stringify({
+                event_type: 'PAYMENT.CAPTURE.COMPLETED',
+                resource: {
+                  id: payment.externalId,
+                  status: 'COMPLETED',
+                  amount: { value: payment.amount },
+                },
+              }),
+            });
+
+            // Poll for order status
+            utils.pollOrderStatus(orderId, (status) => {
+              if (status.status === 'PAID') {
+                window.location.href = `/receipt.html?orderId=${orderId}`;
+              } else {
+                utils.showError('Payment failed');
+              }
+            });
+          } catch (error) {
+            utils.showError(error.message || 'Payment failed');
+            utils.setLoading(btn, false);
+          }
+        });
+      }
+    }
+  </script>
+</body>
+</html>

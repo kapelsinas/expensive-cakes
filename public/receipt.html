@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Receipt - Order Complete</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>✅ Order Receipt</h1>
+    
+    <div id="error-message" class="message error"></div>
+    <div id="loading" style="text-align: center; padding: 40px;">
+      Loading order details...
+    </div>
+
+    <div id="order-details" style="display: none;">
+      <div class="order-details">
+        <h2>Order Information</h2>
+        <div style="margin-bottom: 15px;">
+          <strong>Order ID:</strong> <span id="order-id"></span>
+        </div>
+        <div style="margin-bottom: 15px;">
+          <strong>Status:</strong> <span id="order-status"></span>
+        </div>
+        <div style="margin-bottom: 15px;">
+          <strong>Date:</strong> <span id="order-date"></span>
+        </div>
+        <div style="margin-bottom: 15px;">
+          <strong>Total Amount:</strong> <span id="order-total"></span>
+        </div>
+      </div>
+
+      <div class="order-details">
+        <h2>Order Items</h2>
+        <div id="order-items"></div>
+      </div>
+
+      <div class="payment-history">
+        <h2>Payment History</h2>
+        <div id="payment-list"></div>
+      </div>
+
+      <div class="actions" style="margin-top: 30px;">
+        <button class="btn-secondary" onclick="window.location.href='/'">Back to Cart</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get('orderId');
+
+      if (!orderId) {
+        document.getElementById('error-message').textContent = 'No order ID provided';
+        document.getElementById('error-message').style.display = 'block';
+        document.getElementById('loading').style.display = 'none';
+        return;
+      }
+
+      try {
+        const [order, payments] = await Promise.all([
+          api.getOrder(orderId),
+          api.getOrderPayments(orderId),
+        ]);
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('order-details').style.display = 'block';
+
+        renderOrder(order);
+        renderPayments(payments);
+      } catch (error) {
+        document.getElementById('loading').style.display = 'none';
+        utils.showError(error.message || 'Failed to load order details');
+      }
+    });
+
+    function renderOrder(order) {
+      document.getElementById('order-id').textContent = order.id;
+      
+      const statusBadge = `<span class="status-badge status-${order.status}">${order.status}</span>`;
+      document.getElementById('order-status').innerHTML = statusBadge;
+      
+      document.getElementById('order-date').textContent = new Date(order.createdAt).toLocaleString();
+      document.getElementById('order-total').textContent = utils.formatPrice(order.totalAmount, order.currency);
+
+      const itemsContainer = document.getElementById('order-items');
+      if (order.itemsSnapshot && order.itemsSnapshot.length > 0) {
+        itemsContainer.innerHTML = '';
+        order.itemsSnapshot.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'order-item';
+          div.innerHTML = `
+            <div>
+              <strong>${item.name}</strong><br>
+              <small>${item.productId} - ${item.quantity}x ${utils.formatPrice(item.unitPrice, item.currency)}</small>
+            </div>
+            <div>
+              <strong>${utils.formatPrice(item.subtotal, item.currency)}</strong>
+            </div>
+          `;
+          itemsContainer.appendChild(div);
+        });
+      } else {
+        itemsContainer.innerHTML = '<p>No items found</p>';
+      }
+    }
+
+    function renderPayments(payments) {
+      const container = document.getElementById('payment-list');
+      
+      if (!payments || payments.length === 0) {
+        container.innerHTML = '<p>No payment attempts found</p>';
+        return;
+      }
+
+      container.innerHTML = '';
+      payments.forEach(payment => {
+        const div = document.createElement('div');
+        div.className = 'payment-item';
+        
+        const statusBadge = `<span class="status-badge status-${payment.status}">${payment.status}</span>`;
+        
+        div.innerHTML = `
+          <div class="payment-item-header">
+            <div>
+              <strong>${payment.provider}</strong> - ${statusBadge}
+            </div>
+            <div>
+              <strong>${utils.formatPrice(payment.amount, payment.currency)}</strong>
+            </div>
+          </div>
+          <div style="font-size: 0.9em; color: #666;">
+            <div>External ID: ${payment.externalId}</div>
+            <div>Date: ${new Date(payment.createdAt).toLocaleString()}</div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+  </script>
+</body>
+</html>
