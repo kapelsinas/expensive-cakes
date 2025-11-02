@@ -3,5 +3,3 @@ export enum PaymentProvider {
   PAYPAL = 'PAYPAL',
   MANUAL = 'MANUAL',
 }
-
-

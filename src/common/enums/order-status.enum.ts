@@ -5,5 +5,3 @@ export enum OrderStatus {
   CANCELLED = 'CANCELLED',
   FAILED = 'FAILED',
 }
-
-

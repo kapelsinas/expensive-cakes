@@ -29,5 +29,3 @@ export default (): AppConfig => ({
     synchronize: (process.env.DB_SYNCHRONIZE ?? 'false') === 'true',
   },
 });
-
-

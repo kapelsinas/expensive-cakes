@@ -1,0 +1,29 @@
+# Dependencies
+node_modules
+package-lock.json
+
+# Build output
+dist
+build
+coverage
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+
+# Database
+*.sql
+*.db
+
+# IDE
+.vscode
+.idea
+
+# Misc
+.DS_Store
+*.swp
+*.swo
+

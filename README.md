@@ -44,6 +44,17 @@ This project implements a complete e-commerce checkout flow with emphasis on:
 
 For detailed implementation plan, see [cart.plan.md](./cart.plan.md)
 
+### Database Schema
+
+The platform uses a well-designed relational schema with the following entities:
+- **User**: Customer accounts
+- **Cart**: Shopping cart with items (temporary state)
+- **CartItem**: Individual products with price snapshots
+- **Order**: Immutable checkout records with item snapshots
+- **Payment**: Provider-specific payment attempts and tracking
+
+For detailed entity relationships and design decisions, see [Entity Relationships Documentation](./docs/ENTITY_RELATIONSHIPS.md)
+
 ## Quick Start
 
 Get up and running in 3 simple steps:
@@ -142,8 +153,9 @@ $ npm run docker:down        # Stop database
 $ npm run docker:logs        # View database logs
 
 # Database migrations
-$ npm run migration:generate # Generate new migration
-$ npm run migration:run      # Run migrations
+$ npm run migration:generate # Generate new migration from entity changes
+$ npm run migration:create   # Create empty migration file
+$ npm run migration:run      # Run pending migrations
 $ npm run migration:revert   # Revert last migration
 ```
 

@@ -3,5 +3,3 @@ export enum CartStatus {
   CHECKED_OUT = 'CHECKED_OUT',
   ABANDONED = 'ABANDONED',
 }
-
-

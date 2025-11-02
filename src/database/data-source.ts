@@ -17,5 +17,3 @@ export const AppDataSource = new DataSource({
   logging: process.env.NODE_ENV !== 'production',
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : undefined,
 });
-
-

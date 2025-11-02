@@ -30,5 +30,3 @@ import { AppConfig } from '../config/configuration';
   ],
 })
 export class DatabaseModule {}
-
-
